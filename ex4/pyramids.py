@@ -90,4 +90,4 @@ def buildImageFromLaplacianPyramid(pyramid):
         tmp = pyramid[i]
         h, w, _ = tmp.shape
         image = pyramidUp(image)[:h, :w, :] + pyramid[i]
-    return image.astype(np.uint8)
+    return image.astype('int')

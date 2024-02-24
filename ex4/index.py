@@ -8,7 +8,6 @@ import cv2
 import numpy as np
 image1 = readImage('./in/desert_low_res.jpg', True)
 image2 = readImage('./in/desert_high_res.png', True)
-
 # calculate the matrix first
 shrink2image1 = pyramidDown(pyramidDown(image1))
 shrink2image2 = pyramidDown(pyramidDown(image2))
@@ -65,8 +64,9 @@ destCoords = (np.linalg.inv(bestMatrix) @ coords.T).T
 destCoords[:] += [centerX, centerY]
 em = np.zeros(shrink2image2.shape)
 backWarp(shrink2image2, em, destCoords)
-plt.imshow(em, cmap='gray')
-plt.show()
+print("dfsdfd", em.shape, em.min(),    em.max())
+# plt.imshow(em.astype('int'), cmap='gray')
+# plt.show()
 
 # newIntrestPointImage2 = (np.linalg.inv(bestMatrix) @
 #                          intrestPointImage2.T).T.astype('int')

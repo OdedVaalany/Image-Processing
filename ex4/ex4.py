@@ -3,7 +3,33 @@ import cv2
 from matplotlib import pyplot as plt
 from PIL import Image
 import PIL
-from transforms import backWarp
+
+
+def backWarp(src, dest, dest_cords):
+    """
+    Performs a backward warping operation to map pixels from a source image to a destination image.
+
+    Args:
+        src: The source image.
+        dest: The destination image.
+        dest_cords: The destination coordinates.
+
+    Returns:
+        The warped image.
+    """
+    h, w = dest.shape[:2]
+    bh, bw = src.shape[:2]
+    for i in range(h):
+        for j in range(w):
+            x, y = dest_cords[i*w+j, 0], dest_cords[i*w+j, 1]
+            if (x < 0 or x > bw-1 or y < 0 or y > bh-1):
+                continue
+            dest[i, j] = src[int(y), int(x)]*(1-x % 1)*(1-y % 1) +\
+                src[int(y), min(int(x)+1, bw-1)]*(x % 1)*(1-y % 1) +\
+                src[min(int(y)+1, bh-1), int(x)]*(1-x % 1)*(y % 1) + \
+                src[min(int(y)+1, bh-1), min(int(x)+1, bw-1)]*(x % 1)*(y % 1)
+    return dest
+
 
 if __name__ == "__main__":
     # first read the images
@@ -76,47 +102,53 @@ if __name__ == "__main__":
     print("bestMatches: ", bestMatches)
     print("bestMatrix: ", bestMatrix)
 
-    ############################## calculate the best translations between the intrest points of both images ##############################
-    pairsAfterTransform = pairs.copy()[:, :, :2]
-    pairsAfterTransform[:, 1] = (bestMatrix @ pairs[:, 1].T).T[:, :2]
-    bestMoveVec = [0, 0]
-    bestMatches = 0
-    for i in range(len(pairsAfterTransform)):
-        selected = pairsAfterTransform[np.random.randint(0, pairs.shape[0], 1)]
-        aPoints = selected[:, 0]
-        bPoints = selected[:, 1]
-        moveVec = aPoints-bPoints
-        transformedBPoints = pairsAfterTransform[:, 1]+moveVec
-        dis = np.sqrt(
-            np.sum((pairsAfterTransform[:, 0]-transformedBPoints)**2, axis=1))
-        count = np.count_nonzero(dis < 10)
-        if (count > bestMatches):
-            bestMoveVec = moveVec
-            bestMatches = count
-    print("bestMatches: ", bestMatches, " out of ", len(pairsAfterTransform))
-    print("bestMoveVec: ", bestMoveVec)
     ############################## warp the second image to the first image using the best transformation matrix ##################################
-    # coords = np.zeros((image2.shape[0]*image2.shape[1], 2))
-    # coords[:, 1] = np.repeat(np.arange(image2.shape[0]),
-    #                          image2.shape[1])-image2.shape[0]//2
-    # coords[:, 0] = np.tile(np.arange(image2.shape[1]),
-    #                        image2.shape[0])-image2.shape[1]//2
-    # destCoords = (np.linalg.inv(bestMatrix[:2, :2]) @ coords.T).T
-    # print(bestMatrix[:2, 2].T)
-    # destCoords[:] += 4*bestMatrix[:2, 2].T
-    # destCoords[:] += [image2.shape[1]//2, image2.shape[0]//2]
-    # em = np.zeros(image2.shape)
-    # backWarp(image2, em, destCoords)
-    # plt.imshow(em)
+    coords = np.zeros((image2.shape[0]*image2.shape[1], 2))
+    coords[:, 1] = np.repeat(np.arange(image2.shape[0]),
+                             image2.shape[1])-image2.shape[0]//2
+    coords[:, 0] = np.tile(np.arange(image2.shape[1]),
+                           image2.shape[0])-image2.shape[1]//2
+    destCoords = (np.linalg.inv(bestMatrix[:2, :2]) @ coords.T).T
+    destCoords[:] += bestMatrix[:2, 2].T
+    destCoords[:] += [image2.shape[1]//2, image2.shape[0]//2]
+
+    em = np.zeros(image2.shape)
+    wrapedMask = np.zeros(mask.shape)
+    backWarp(image2, em, destCoords)
+    backWarp(mask, wrapedMask, destCoords)
+    # plt.imshow(em.astype('int'))
+    # plt.show()
+    # plt.imshow(wrapedMask, cmap='gray')
     # plt.show()
 
-    rows, cols = image2.shape[:2]
-    M = bestMatrix
-    M[0, 2] -= image2.shape[1]//2
-    M[1, 2] -= image2.shape[0]//2
-    dst = cv2.warpPerspective(image2, M, (cols, rows))
-    plt.imshow(dst)
+    ############################## blend the two images together using the mask ##################################
+
+    mask_ = wrapedMask/255
+    mask_ = np.stack([mask_, mask_, mask_], axis=2)
+    blendedImage = mask_*em + (1-mask_)*image1
+    plt.imshow(blendedImage.astype('int'))
     plt.show()
+
+    # h, w = image2.shape[:2]
+    # corners = np.array(
+    #     [[-w//2, w//2, w//2, -w//2], [-h//2, -h//2, h//2, h//2], [1, 1, 1, 1]])
+    # cornersAfterTransforms = bestMatrix @ corners
+    # width = int(
+    #     np.max(cornersAfterTransforms[0])-np.min(cornersAfterTransforms[0]))
+    # height = int(
+    #     np.max(cornersAfterTransforms[1])-np.min(cornersAfterTransforms[1]))
+    # moveX = int(np.mean([
+    #     cornersAfterTransforms[0, 0]+w//2, cornersAfterTransforms[0, 0]+w//2]))
+    # moveY = int(np.mean([
+    #     cornersAfterTransforms[0, 1]+h//2, cornersAfterTransforms[-1, 1]+h//2]))
+    # print(width, height, w, h, moveX, moveY)
+    # rows, cols = h, w
+    # M = bestMatrix
+    # M[0, 2] -= MoveVec[0]*4
+    # M[1, 2] += MoveVec[1]*4
+    # dst = cv2.warpPerspective(image2, M, (cols, rows))
+    # plt.imshow(dst)
+    # plt.show()
 
     # f, a = plt.subplots(1, 3)
     # a[0].imshow(image1)
