@@ -79,7 +79,6 @@ def rotate(im1, theta, rotate_origin=(0, 0)):
     return backWarp(im1, emp, coords+[cx, cy, 0])
 
 
-@colorImageSupport
 def backWarp(src, dest, dest_cords):
     """
     Performs a backward warping operation to map pixels from a source image to a destination image.
@@ -92,8 +91,8 @@ def backWarp(src, dest, dest_cords):
     Returns:
         The warped image.
     """
-    h, w = dest.shape
-    bh, bw = src.shape
+    h, w = dest.shape[:2]
+    bh, bw = src.shape[:2]
     for i in range(h):
         for j in range(w):
             x, y = dest_cords[i*w+j, 0], dest_cords[i*w+j, 1]
