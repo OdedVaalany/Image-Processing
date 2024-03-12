@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 from PIL import Image
-import PIL
 
 
 def backWarp(src, dest, dest_cords):
@@ -49,24 +48,6 @@ if __name__ == "__main__":
         image1grays, 50, 0.01, 10)[:, 0, :]
     intrestPointImage2 = cv2.goodFeaturesToTrack(
         image2grays, 50, 0.01, 10)[:, 0, :]
-    ############################## plot the intrest points of both images ##############################
-    # copyIm1 = image1grays.copy()
-    # im = np.zeros_like(image1grays)
-    # im[intrestPointImage1[:, 1].astype(int),
-    #    intrestPointImage1[:, 0].astype(int)] = 255
-    # cv2.dilate(im, np.ones((11, 11), np.uint8), im)
-    # copyIm1 = cv2.add(copyIm1, im)
-    # copyIm2 = image2grays.copy()
-    # im = np.zeros_like(image2grays)
-    # im[intrestPointImage2[:, 1].astype(int),
-    #    intrestPointImage2[:, 0].astype(int)] = 255
-    # cv2.dilate(im, np.ones((11, 11), np.uint8), im)
-    # copyIm2 = cv2.add(copyIm2, im)
-
-    # f, a = plt.subplots(1, 2)
-    # a[0].imshow(copyIm1)
-    # a[1].imshow(copyIm2)
-    # plt.show()
 
     ############################## find the best matches between the intrest points of both images ##############################
 
@@ -116,10 +97,6 @@ if __name__ == "__main__":
     wrapedMask = np.zeros(mask.shape)
     backWarp(image2, em, destCoords)
     backWarp(mask, wrapedMask, destCoords)
-    # plt.imshow(em.astype('int'))
-    # plt.show()
-    # plt.imshow(wrapedMask, cmap='gray')
-    # plt.show()
 
     ############################## blend the two images together using the mask ##################################
 
@@ -127,31 +104,4 @@ if __name__ == "__main__":
     mask_ = np.stack([mask_, mask_, mask_], axis=2)
     blendedImage = mask_*em + (1-mask_)*image1
     plt.imshow(blendedImage.astype('int'))
-    plt.show()
-
-    # h, w = image2.shape[:2]
-    # corners = np.array(
-    #     [[-w//2, w//2, w//2, -w//2], [-h//2, -h//2, h//2, h//2], [1, 1, 1, 1]])
-    # cornersAfterTransforms = bestMatrix @ corners
-    # width = int(
-    #     np.max(cornersAfterTransforms[0])-np.min(cornersAfterTransforms[0]))
-    # height = int(
-    #     np.max(cornersAfterTransforms[1])-np.min(cornersAfterTransforms[1]))
-    # moveX = int(np.mean([
-    #     cornersAfterTransforms[0, 0]+w//2, cornersAfterTransforms[0, 0]+w//2]))
-    # moveY = int(np.mean([
-    #     cornersAfterTransforms[0, 1]+h//2, cornersAfterTransforms[-1, 1]+h//2]))
-    # print(width, height, w, h, moveX, moveY)
-    # rows, cols = h, w
-    # M = bestMatrix
-    # M[0, 2] -= MoveVec[0]*4
-    # M[1, 2] += MoveVec[1]*4
-    # dst = cv2.warpPerspective(image2, M, (cols, rows))
-    # plt.imshow(dst)
-    # plt.show()
-
-    # f, a = plt.subplots(1, 3)
-    # a[0].imshow(image1)
-    # a[1].imshow(image2)
-    # a[2].imshow(mask)
-    # plt.show()
+    plt.savefig('./blendedImage_desert.png')
